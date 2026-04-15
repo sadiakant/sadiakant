@@ -1,0 +1,78 @@
+services:
+  n8n-db:
+    image: postgres:15-alpine
+    container_name: n8n-db
+    restart: always
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: #your-n8n-PG-password
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c work_mem=2MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=20
+    healthcheck:  # Added: Waits until DB is ready
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - n8n_db_data:/var/lib/postgresql/data
+    networks:
+      - n8n_net
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      # -------- BASIC --------
+      N8N_HOST: your-n8n-domain.com
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://your-n8n-domain.com
+      GENERIC_TIMEZONE: Asia/Kolkata
+      N8N_PROXY_HOPS: 1
+      N8N_TRUST_PROXY: true
+      N8N_REINSTALL_MISSING_PACKAGES: true
+      N8N_MIGRATE_FS_STORAGE_PATH: true
+      # -------- SECURITY --------
+      N8N_ENCRYPTION_KEY: #your-n8n-encryption-key
+      N8N_SECURE_COOKIE: true
+      # -------- DATABASE --------
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n-db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: #your-n8n-PG-password
+      DB_POSTGRESDB_POOL_SIZE: 3
+      DB_POSTGRESDB_CONNECTION_TIMEOUT: 30000
+      # -------- MEMORY CONTROL --------
+      NODE_OPTIONS: --max-old-space-size=768
+      # -------- EXECUTION --------
+      EXECUTIONS_MODE: regular
+      EXECUTIONS_TIMEOUT: 1800
+      EXECUTIONS_TIMEOUT_MAX: 3600
+      # -------- LOG REDUCTION --------
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: minimal
+      # -------- DISABLE TASK RUNNERS --------
+      QUEUE_BULL_REDIS_DISABLED: true
+
+    depends_on:
+      n8n-db:  # Updated: Waits for healthcheck
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n_net
+volumes:
+  n8n_data:
+  n8n_db_data:
+networks:
+  n8n_net:
+    driver: bridge

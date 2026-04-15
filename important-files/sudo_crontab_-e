@@ -1,0 +1,10 @@
+# minute (m), hour (h), day of month (dom), month (mon) and day of week (dow) or use '*' in these fields (for 'any').
+
+# 1. Everyday: n8n Backup at 03:00 AM (Night)
+00 03 * * * /bin/bash "/home/{your-username}/services/n8n/backup/backup.sh" > "/home/{your-username}/logs/n8n_backup.log" 2>&1
+
+# 2. Everyday: n8n Docker Update at 03:30 AM (Night)
+30 03 * * * /bin/bash "/home/{your-username}/services/n8n/update_n8n.sh"
+
+# 3. Everyday: Ubuntu System Update & Upgrade at 04:00 AM (Night)
+00 04 * * * /bin/bash "/home/{your-username}/update_ubuntu.sh"
